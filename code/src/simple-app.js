@@ -34,10 +34,10 @@ const server = http.createServer((req, res) => {
         if (filePath) {
           const fs = require('fs');
           const { exec } = require('child_process');
-          
+
           fs.readFile('./config.json', 'utf8', (configErr, configData) => {
             const config = configErr ? { debug: false } : JSON.parse(configData);
-            
+
             // TODO: Tech debt - should use fs.readFile instead of shell command for security
             exec(`cat "${filePath}"`, (error, stdout, stderr) => {
               if (error) {
@@ -46,10 +46,10 @@ const server = http.createServer((req, res) => {
                 return;
               }
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ 
+              res.end(JSON.stringify({
                 config: config,
                 content: stdout,
-                error: stderr 
+                error: stderr
               }));
             });
           });
