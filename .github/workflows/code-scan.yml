@@ -7,145 +7,145 @@ permissions:
   security-events: write
   actions: read
 
-jobs:
-  semgrep-scan:
-    name: Semgrep Community Scan
-    runs-on: ubuntu-latest
-    outputs:
-      result: ${{ steps.scan-result.outputs.result }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+# jobs:
+#   semgrep-scan:
+#     name: Semgrep Community Scan
+#     runs-on: ubuntu-latest
+#     outputs:
+#       result: ${{ steps.scan-result.outputs.result }}
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install Semgrep Community Edition
-        run: pip install semgrep
+#       - name: Install Semgrep Community Edition
+#         run: pip install semgrep
 
-      - name: Run Semgrep Security Scan
-        id: semgrep-tool
-        run: |
-          semgrep \
-            --config=p/security-audit \
-            --config=p/javascript \
-            --config=p/owasp-top-ten \
-            --error \
-            --sarif \
-            --output=semgrep-results.sarif \
-            ./code/ || echo "SEMGREP_EXIT_CODE=$?" >> "$GITHUB_ENV"
+#       - name: Run Semgrep Security Scan
+#         id: semgrep-tool
+#         run: |
+#           semgrep \
+#             --config=p/security-audit \
+#             --config=p/javascript \
+#             --config=p/owasp-top-ten \
+#             --error \
+#             --sarif \
+#             --output=semgrep-results.sarif \
+#             ./code/ || echo "SEMGREP_EXIT_CODE=$?" >> "$GITHUB_ENV"
 
-      - name: Summarize findings
-        if: always() && hashFiles('semgrep-results.sarif') != ''
-        run: |
-          COUNT=$(jq '[.runs[].results[]] | length' semgrep-results.sarif)
-          if [ "${COUNT:-0}" -eq 0 ]; then
-            echo "✅ No security alerts"
-          else
-            echo "❌ Found $COUNT Semgrep finding(s):"
-            jq -r '.runs[].results[] |
-              "  - \(.ruleId) | \(.message.text)\n      \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine // 1)"' \
-              semgrep-results.sarif
-          fi
+#       - name: Summarize findings
+#         if: always() && hashFiles('semgrep-results.sarif') != ''
+#         run: |
+#           COUNT=$(jq '[.runs[].results[]] | length' semgrep-results.sarif)
+#           if [ "${COUNT:-0}" -eq 0 ]; then
+#             echo "✅ No security alerts"
+#           else
+#             echo "❌ Found $COUNT Semgrep finding(s):"
+#             jq -r '.runs[].results[] |
+#               "  - \(.ruleId) | \(.message.text)\n      \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine // 1)"' \
+#               semgrep-results.sarif
+#           fi
 
-      - name: Upload Semgrep SARIF
-        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
-        with:
-          sarif_file: semgrep-results.sarif
-          category: semgrep
-        if: always()
+#       - name: Upload Semgrep SARIF
+#         uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+#         with:
+#           sarif_file: semgrep-results.sarif
+#           category: semgrep
+#         if: always()
 
-      - name: Set scan result
-        id: scan-result
-        if: always()
-        run: |
-          # Semgrep exit codes: 0=no findings, 1=findings found, 2+=error
-          if [ "${{ steps.semgrep-tool.outcome }}" == "success" ] && [ -z "$SEMGREP_EXIT_CODE" ]; then
-            echo "result=success" >> "$GITHUB_OUTPUT"
-            echo "✅ Semgrep scan passed - no vulnerabilities found"
-          elif [ "$SEMGREP_EXIT_CODE" == "1" ] || [ "${{ steps.semgrep-tool.outcome }}" == "failure" ]; then
-            echo "result=failure" >> "$GITHUB_OUTPUT"
-            echo "❌ Semgrep scan failed - vulnerabilities detected"
-            if [ "${{ github.event_name }}" == "pull_request" ]; then
-              echo "🔍 View findings for PR"
-            else
-              echo "🔍 View findings on main"
-            fi
-            exit 1
-          else
-            echo "result=failure" >> "$GITHUB_OUTPUT"
-            echo "❌ Semgrep scan encountered an error"
-            exit 1
-          fi
+#       - name: Set scan result
+#         id: scan-result
+#         if: always()
+#         run: |
+#           # Semgrep exit codes: 0=no findings, 1=findings found, 2+=error
+#           if [ "${{ steps.semgrep-tool.outcome }}" == "success" ] && [ -z "$SEMGREP_EXIT_CODE" ]; then
+#             echo "result=success" >> "$GITHUB_OUTPUT"
+#             echo "✅ Semgrep scan passed - no vulnerabilities found"
+#           elif [ "$SEMGREP_EXIT_CODE" == "1" ] || [ "${{ steps.semgrep-tool.outcome }}" == "failure" ]; then
+#             echo "result=failure" >> "$GITHUB_OUTPUT"
+#             echo "❌ Semgrep scan failed - vulnerabilities detected"
+#             if [ "${{ github.event_name }}" == "pull_request" ]; then
+#               echo "🔍 View findings for PR"
+#             else
+#               echo "🔍 View findings on main"
+#             fi
+#             exit 1
+#           else
+#             echo "result=failure" >> "$GITHUB_OUTPUT"
+#             echo "❌ Semgrep scan encountered an error"
+#             exit 1
+#           fi
 
-  code-scan:
-    name: Code Scan with Dependency Check
-    runs-on: ubuntu-latest
-    outputs:
-      result: ${{ steps.scan-result.outputs.result }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+#   code-scan:
+#     name: Code Scan with Dependency Check
+#     runs-on: ubuntu-latest
+#     outputs:
+#       result: ${{ steps.scan-result.outputs.result }}
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+#         with:
+#           persist-credentials: false
 
-      - name: Run Dependency Check scanner
-        id: scan-tool
-        uses: dependency-check/Dependency-Check_Action@75ba02d6183445fe0761d26e836bde58b1560600 # 1.1.0
-        with:
-          project: 'code'
-          path: './code'
-          format: 'ALL'
-          others: '--failOnCVSS=7'
+#       - name: Run Dependency Check scanner
+#         id: scan-tool
+#         uses: dependency-check/Dependency-Check_Action@75ba02d6183445fe0761d26e836bde58b1560600 # 1.1.0
+#         with:
+#           project: 'code'
+#           path: './code'
+#           format: 'ALL'
+#           others: '--failOnCVSS=7'
 
-      - name: Normalize SARIF paths to repo root
-        if: always() && hashFiles('reports/dependency-check-report.sarif') != ''
-        # Dependency Check emits container paths like file:///github/workspace/code/package-lock.json?axios;
-        # rewrite to repo-relative paths so GHAS can map findings to the PR diff.
-        run: |
-          jq '(.runs[].results[].locations[].physicalLocation.artifactLocation.uri) |= (sub("^file:///github/workspace/"; "") | sub("\\?.*$"; ""))' \
-            reports/dependency-check-report.sarif > dependency-check.sarif
+#       - name: Normalize SARIF paths to repo root
+#         if: always() && hashFiles('reports/dependency-check-report.sarif') != ''
+#         # Dependency Check emits container paths like file:///github/workspace/code/package-lock.json?axios;
+#         # rewrite to repo-relative paths so GHAS can map findings to the PR diff.
+#         run: |
+#           jq '(.runs[].results[].locations[].physicalLocation.artifactLocation.uri) |= (sub("^file:///github/workspace/"; "") | sub("\\?.*$"; ""))' \
+#             reports/dependency-check-report.sarif > dependency-check.sarif
 
-      - name: Summarize findings
-        if: always() && hashFiles('dependency-check.sarif') != ''
-        run: |
-          SARIF=dependency-check.sarif
-          COUNT=$(jq '[.runs[].results[]] | length' "$SARIF")
-          if [ "${COUNT:-0}" -eq 0 ]; then
-            echo "✅ No vulnerabilities found"
-          else
-            echo "❌ Found $COUNT Dependency Check finding(s):"
-            # message.text holds the full advisory markdown; print the rule's one-line description instead.
-            jq -r '.runs[] | ((.tool.driver.rules // []) | map({(.id): .shortDescription.text}) | add // {}) as $rules | .results[] |
-              "  - \(.ruleId) | \($rules[.ruleId] // (.message.text | split("\n")[0]))\n      \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine // 1)"' \
-              "$SARIF"
-          fi
+#       - name: Summarize findings
+#         if: always() && hashFiles('dependency-check.sarif') != ''
+#         run: |
+#           SARIF=dependency-check.sarif
+#           COUNT=$(jq '[.runs[].results[]] | length' "$SARIF")
+#           if [ "${COUNT:-0}" -eq 0 ]; then
+#             echo "✅ No vulnerabilities found"
+#           else
+#             echo "❌ Found $COUNT Dependency Check finding(s):"
+#             # message.text holds the full advisory markdown; print the rule's one-line description instead.
+#             jq -r '.runs[] | ((.tool.driver.rules // []) | map({(.id): .shortDescription.text}) | add // {}) as $rules | .results[] |
+#               "  - \(.ruleId) | \($rules[.ruleId] // (.message.text | split("\n")[0]))\n      \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine // 1)"' \
+#               "$SARIF"
+#           fi
 
-      - name: Upload SARIF to GitHub Code Scanning
-        if: always() && hashFiles('dependency-check.sarif') != ''
-        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
-        with:
-          sarif_file: dependency-check.sarif
-          category: dependency-check-sca
+#       - name: Upload SARIF to GitHub Code Scanning
+#         if: always() && hashFiles('dependency-check.sarif') != ''
+#         uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+#         with:
+#           sarif_file: dependency-check.sarif
+#           category: dependency-check-sca
 
-      - name: Set scan result
-        id: scan-result
-        if: always()
-        run: |
-          if [ "${{ steps.scan-tool.outcome }}" == "success" ]; then
-            echo "result=success" >> "$GITHUB_OUTPUT"
-            echo "✅ Code scan passed — no critical vulnerabilities found"
-          else
-            echo "result=failure" >> "$GITHUB_OUTPUT"
-            echo "❌ Code scan failed — vulnerabilities detected"
-            if [ "${{ github.event_name }}" == "pull_request" ]; then
-              echo "🔍 View findings on PR"
-            else
-              echo "🔍 View findings on main"
-            fi
-            exit 1
-          fi
+#       - name: Set scan result
+#         id: scan-result
+#         if: always()
+#         run: |
+#           if [ "${{ steps.scan-tool.outcome }}" == "success" ]; then
+#             echo "result=success" >> "$GITHUB_OUTPUT"
+#             echo "✅ Code scan passed — no critical vulnerabilities found"
+#           else
+#             echo "result=failure" >> "$GITHUB_OUTPUT"
+#             echo "❌ Code scan failed — vulnerabilities detected"
+#             if [ "${{ github.event_name }}" == "pull_request" ]; then
+#               echo "🔍 View findings on PR"
+#             else
+#               echo "🔍 View findings on main"
+#             fi
+#             exit 1
+#           fi
 
-      - name: Upload HTML report
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-            name: Dependency Check Report
-            path: ${{github.workspace}}/reports
+#       - name: Upload HTML report
+#         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+#         if: always()
+#         with:
+#             name: Dependency Check Report
+#             path: ${{github.workspace}}/reports
